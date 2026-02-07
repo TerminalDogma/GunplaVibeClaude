@@ -1,0 +1,288 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Vibration,
+} from 'react-native';
+// import { BarCodeScanner } from 'expo-barcode-scanner';
+import { Ionicons } from '@expo/vector-icons';
+import { getMasterCatalog } from '../utils/database';
+
+export default function ScanBarcodeScreen({ navigation }) {
+  const [hasPermission, setHasPermission] = useState(null);
+  const [scanned, setScanned] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+
+  useEffect(() => {
+    requestCameraPermission();
+  }, []);
+
+  const requestCameraPermission = async () => {
+    const { status } = await BarCodeScanner.requestPermissionsAsync();
+    setHasPermission(status === 'granted');
+  };
+
+  const handleBarCodeScanned = async ({ type, data }) => {
+    setScanned(true);
+    Vibration.vibrate(100);
+
+    // Search for model in catalog
+    const catalog = await getMasterCatalog();
+    const model = catalog.find(m => m.barcode === data);
+
+    if (model) {
+      Alert.alert(
+        'Model Found!',
+        `${model.name} - ${model.grade}`,
+        [
+          { 
+            text: 'View Details', 
+            onPress: () => {
+              navigation.navigate('ModelDetail', { model });
+            }
+          },
+          {
+            text: 'Scan Another',
+            onPress: () => setScanned(false),
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Not Found',
+        `Barcode ${data} not found in the catalog. This model may not be in the database yet.`,
+        [
+          {
+            text: 'Scan Another',
+            onPress: () => setScanned(false),
+          },
+          {
+            text: 'Cancel',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    }
+  };
+
+  if (hasPermission === null) {
+    return (
+      <View style={styles.centered}>
+        <Text>Requesting camera permission...</Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <View style={styles.centered}>
+        <Ionicons name="camera-off-outline" size={64} color="#999" />
+        <Text style={styles.noPermissionText}>No access to camera</Text>
+        <Text style={styles.noPermissionSubtext}>
+          Please grant camera permission in your device settings
+        </Text>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={requestCameraPermission}
+        >
+          <Text style={styles.settingsButtonText}>Request Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <BarCodeScanner
+        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+        style={StyleSheet.absoluteFillObject}
+        torchMode={torchOn ? 'on' : 'off'}
+        barCodeTypes={[BarCodeScanner.Constants.BarCodeType.ean13, BarCodeScanner.Constants.BarCodeType.ean8]}
+      />
+
+      <View style={styles.overlay}>
+        <View style={styles.topOverlay}>
+          <Text style={styles.instructions}>
+            Align the barcode within the frame
+          </Text>
+        </View>
+
+        <View style={styles.middleContainer}>
+          <View style={styles.sideOverlay} />
+          <View style={styles.scanArea}>
+            <View style={styles.cornerTopLeft} />
+            <View style={styles.cornerTopRight} />
+            <View style={styles.cornerBottomLeft} />
+            <View style={styles.cornerBottomRight} />
+          </View>
+          <View style={styles.sideOverlay} />
+        </View>
+
+        <View style={styles.bottomOverlay}>
+          <View style={styles.controls}>
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPress={() => setTorchOn(!torchOn)}
+            >
+              <Ionicons 
+                name={torchOn ? 'flash' : 'flash-off'} 
+                size={28} 
+                color="#fff" 
+              />
+              <Text style={styles.controlText}>
+                {torchOn ? 'Flash On' : 'Flash Off'}
+              </Text>
+            </TouchableOpacity>
+
+            {scanned && (
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={() => setScanned(false)}
+              >
+                <Ionicons name="refresh" size={28} color="#fff" />
+                <Text style={styles.controlText}>Scan Again</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+              <Text style={styles.controlText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+  },
+  noPermissionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 16,
+  },
+  noPermissionSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  settingsButton: {
+    backgroundColor: '#E53935',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  settingsButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+  },
+  topOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instructions: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  middleContainer: {
+    flexDirection: 'row',
+    height: 250,
+  },
+  sideOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  scanArea: {
+    width: 300,
+    height: 250,
+    position: 'relative',
+  },
+  cornerTopLeft: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 40,
+    height: 40,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: '#E53935',
+  },
+  cornerTopRight: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderColor: '#E53935',
+  },
+  cornerBottomLeft: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: 40,
+    height: 40,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderColor: '#E53935',
+  },
+  cornerBottomRight: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: '#E53935',
+  },
+  bottomOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+  },
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+  },
+  controlButton: {
+    alignItems: 'center',
+    padding: 10,
+  },
+  controlText: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 8,
+  },
+});
