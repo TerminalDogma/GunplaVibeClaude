@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Gunpla Collector",
+    "slug": "gunpla-collector",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourname.gunplacollector",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to scan barcodes and take photos of your Gunpla models.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save and display photos of your Gunpla models."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.yourname.gunplacollector",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Allow Gunpla Collector to scan barcodes."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Gunpla Collector to access your photos."
+        }
+      ]
+    ]
+  }
+}
